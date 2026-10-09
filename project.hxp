@@ -21,17 +21,17 @@ class Project extends HXProject
 
   static final MOON_VERSION:String = '0.1.2';
 
-  static final TITLE:String = "Friday Night Funkin': Moon Engine";
+  static final TITLE:String = "Friday Night Funkin': Moon Slice";
 
-  static final TITLE_MOBILE:String = "FNF: Moon Engine";
+  static final TITLE_MOBILE:String = "FNF: Moon Slice";
 
   static final ICON_DESKTOP:String = "";
 
   static final ICON_MOBILE:String = "";
 
-  static final PACKAGE_NAME:String = "me.funkin.moon";
+  static final PACKAGE_NAME:String = "me.funkin.moonslice";
 
-  static final EXECUTABLE_NAME:String = "MoonEngine";
+  static final EXECUTABLE_NAME:String = "MoonSlice";
 
   static final SOURCE_DIR:String = "source";
 
