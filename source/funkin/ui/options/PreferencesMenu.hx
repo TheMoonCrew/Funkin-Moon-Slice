@@ -1,0 +1,669 @@
+package funkin.ui.options;
+
+import flixel.FlxCamera;
+import flixel.FlxObject;
+import flixel.FlxSprite;
+import flixel.text.FlxText;
+import flixel.util.FlxColor;
+import flixel.FlxG;
+import flixel.group.FlxSpriteGroup;
+// SALVAAAAAAA ESSSA PORRRAAAAAAAAAAAAAA
+import flixel.group.FlxSpriteGroup.FlxTypedSpriteGroup;
+import flixel.math.FlxPoint;
+import funkin.ui.AtlasText.AtlasFont;
+import funkin.ui.Page;
+import funkin.graphics.FunkinCamera;
+import funkin.graphics.FunkinSprite;
+import funkin.ui.TextMenuList.TextMenuItem;
+import funkin.ui.options.items.CheckboxPreferenceItem;
+import funkin.ui.options.items.NumberPreferenceItem;
+import funkin.ui.options.items.EnumPreferenceItem;
+import funkin.ui.debug.FunkinDebugDisplay;
+import funkin.ui.debug.FunkinDebugDisplay.DebugDisplayMode;
+#if mobile
+import funkin.mobile.ui.FunkinBackButton;
+import funkin.mobile.input.ControlsHandler;
+import funkin.mobile.ui.FunkinHitbox.FunkinHitboxControlSchemes;
+import funkin.util.TouchUtil;
+import funkin.util.SwipeUtil;
+#end
+import funkin.util.HapticUtil;
+import lime.ui.WindowVSyncMode;
+
+class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
+{
+  var items:TextMenuList;
+  var preferenceItems:FlxTypedSpriteGroup<FlxSprite>;
+  var preferenceDesc:Array<String> = [];
+  var itemDesc:FlxText;
+  var itemDescBox:FunkinSprite;
+  var menuCamera:FlxCamera;
+  var hudCamera:FlxCamera;
+  var camFollow:FlxObject;
+
+  #if mobile
+  /**
+   * Keeps references to checkbox preferences that need to have their
+   * availability updated dynamically.
+   */
+  var preferenceCheckboxes:Map<String, CheckboxPreferenceItem> = new Map();
+  #end
+
+  public function new()
+  {
+    super();
+
+    menuCamera = new FunkinCamera('prefMenu');
+    FlxG.cameras.add(menuCamera, false);
+    menuCamera.bgColor = 0x0;
+
+    hudCamera = new FlxCamera();
+    FlxG.cameras.add(hudCamera, false);
+    hudCamera.bgColor = 0x0;
+
+    camera = menuCamera;
+
+    add(items = new TextMenuList());
+    add(preferenceItems = new FlxTypedSpriteGroup<FlxSprite>());
+    add(itemDescBox = new FunkinSprite());
+
+    itemDescBox.cameras = [hudCamera];
+
+    add(itemDesc = new FlxText(0, 0, 1180, null, 32));
+    itemDesc.cameras = [hudCamera];
+
+    createPrefItems();
+    createPrefDescription();
+
+    camFollow = new FlxObject(FlxG.width / 2, 0, 140, 70);
+    menuCamera.follow(camFollow, null, 0.085);
+
+    var margin = 160;
+    menuCamera.deadzone.set(0, margin, menuCamera.width, menuCamera.height - margin * 2);
+    menuCamera.minScrollY = 0;
+
+    items.onChange.add(function(selected)
+    {
+      itemDesc.text = preferenceDesc[items.selectedIndex];
+    });
+
+    #if FEATURE_TOUCH_CONTROLS
+    var backButton:FunkinBackButton = new FunkinBackButton(FlxG.width - 230, FlxG.height - 200, exit, 1.0);
+    add(backButton);
+    #end
+  }
+
+  function createPrefDescription():Void
+  {
+    itemDescBox.makeSolidColor(1, 1, FlxColor.BLACK);
+    itemDescBox.alpha = 0.6;
+
+    itemDesc.setFormat(Paths.font('vcr.ttf'), 32, FlxColor.WHITE, FlxTextAlign.CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+
+    itemDesc.borderSize = 3;
+    itemDesc.text = preferenceDesc[items.selectedIndex];
+    itemDesc.screenCenter();
+    itemDesc.y += 270;
+
+    itemDescBox.setPosition(itemDesc.x - 10, itemDesc.y - 10);
+    itemDescBox.setGraphicSize(Std.int(itemDesc.width + 20), Std.int(itemDesc.height + 25));
+    itemDescBox.updateHitbox();
+  }
+
+  function createPrefItems():Void
+  {
+    #if mobile
+    createPrefItemEnum('Hitbox Mode', 'Choose the layout of the on-screen touch controls.', [
+      "Arrows" => FunkinHitboxControlSchemes.Arrows,
+      "Four Lanes" => FunkinHitboxControlSchemes.FourLanes,
+    ], function(key:String, value:String):Void
+    {
+      Preferences.controlsScheme = value;
+
+      // Immediately update the preferences that depend on the hitbox mode.
+      updateHitboxDependentPreferences();
+    }, switch (Preferences.controlsScheme)
+      {
+        case FunkinHitboxControlSchemes.FourLanes:
+          "Four Lanes";
+
+        default:
+          "Arrows";
+      });
+    #end
+
+    #if FEATURE_NAUGHTYNESS
+    createPrefItemCheckbox('Naughtyness', 'When enabled, raunchy content (such as swearing, etc.) is displayed.', function(value:Bool):Void
+    {
+      Preferences.naughtyness = value;
+    }, Preferences.naughtyness);
+    #end
+
+    createPrefItemCheckbox('Downscroll', 'When enabled, notes move downwards toward the strumline at the bottom of the screen.', function(value:Bool):Void
+    {
+      Preferences.downscroll = value;
+    }, Preferences.downscroll,
+      #if mobile ControlsHandler.hasExternalInputDevice
+      || Preferences.controlsScheme == FunkinHitboxControlSchemes.FourLanes
+      #else true #end);
+
+    createPrefItemCheckbox(
+      'Middlescroll',
+      'When enabled, notes are centered on the strumline instead of being spread across the screen.',
+      function(value:Bool):Void
+      {
+        Preferences.middlescroll = value;
+      },
+      Preferences.middlescroll, #if mobile ControlsHandler.hasExternalInputDevice || Preferences.controlsScheme == FunkinHitboxControlSchemes.FourLanes #else true #end);
+
+    #if mobile
+    createPrefItemCheckbox(
+      'Invisible Hitbox',
+      'When enabled, the touch hitbox buttons are invisible. Only applies to the Four Lanes hitbox mode.',
+      function(value:Bool):Void
+      {
+        Preferences.invisibleHitbox = value;
+      },
+      Preferences.invisibleHitbox,
+      Preferences.controlsScheme == FunkinHitboxControlSchemes.FourLanes
+    );
+    #end
+
+    createPrefItemPercentage('Strumline Background', 'Show a semi-transparent background behind the strumline.', function(value:Int):Void
+    {
+      Preferences.strumlineBackgroundOpacity = value;
+    }, Preferences.strumlineBackgroundOpacity);
+
+    #if FEATURE_HAPTICS
+    createPrefItemEnum('Haptics', 'When enabled, the game plays haptic feedback effects.', [
+      "All" => HapticsMode.ALL,
+      "Notes Only" => HapticsMode.NOTES_ONLY,
+      "None" => HapticsMode.NONE,
+    ], function(key:String, value:HapticsMode):Void
+    {
+      Preferences.hapticsMode = value;
+    }, switch (Preferences.hapticsMode)
+      {
+        case HapticsMode.NOTES_ONLY:
+          "Notes Only";
+
+        case HapticsMode.NONE:
+          "None";
+
+        default:
+          "All";
+      });
+
+    createPrefItemNumber('Haptics Intensity', 'Intensity multiplier for all haptic feedback effects.', function(value:Float)
+    {
+      Preferences.hapticsIntensityMultiplier = value;
+    }, null, Preferences.hapticsIntensityMultiplier, 0.1, 5, 0.1, 1);
+    #end
+
+    #if mobile
+    createPrefItemCheckbox(
+      'Fullscreen Mode',
+      'When enabled, the game stretches to fill the entire screen, including areas behind notches and camera cutouts.',
+      function(value:Bool):Void
+      {
+        Preferences.fullscreenMode = value;
+      },
+      Preferences.fullscreenMode
+    );
+    #end
+
+    createPrefItemCheckbox(
+      'Flashing Lights',
+      'When disabled, flashing effects are dampened. Useful for people with photosensitive epilepsy.',
+      function(value:Bool):Void
+      {
+        Preferences.flashingLights = value;
+      },
+      Preferences.flashingLights
+    );
+
+    createPrefItemCheckbox(
+      'Camera Movement (WIP)',
+      'When enabled, the camera nudges slightly in the direction of the note you hit. Report Bugs or change tips by creating an issue on our GitHub',
+      function(value:Bool):Void
+      {
+        Preferences.cameraMovement = value;
+      },
+      Preferences.cameraMovement
+    );
+
+    #if (FEATURE_3D_RENDERING || FEATURE_AWAY3D)
+    createPrefItemCheckbox('3D Mode', 'When enabled, supported stages and menus render with 3D backgrounds instead of flat 2D art.', function(value:Bool):Void
+    {
+      Preferences.mode3D = value;
+    }, Preferences.mode3D);
+    #end
+
+    createPrefItemCheckbox('Camera Zooms', 'When enabled, the camera bounces during songs.', function(value:Bool):Void
+    {
+      Preferences.zoomCamera = value;
+    }, Preferences.zoomCamera);
+
+    createPrefItemCheckbox(
+      'Modcharts',
+      'When enabled, songs with a modchart move and rotate the strumlines and cameras. Turn it off if the movement bothers you.',
+      function(value:Bool):Void
+      {
+        Preferences.modcharts = value;
+      },
+      Preferences.modcharts
+    );
+
+    createPrefItemCheckbox('Subtitles', 'When enabled, subtitles appear during some songs and cutscenes.', function(value:Bool):Void
+    {
+      Preferences.subtitles = value;
+    }, Preferences.subtitles);
+
+    #if FEATURE_DEBUG_DISPLAY
+    createPrefItemEnum('Debug Display', 'When enabled, FPS and other debug stats are displayed.', [
+      "Advanced" => DebugDisplayMode.Advanced,
+      "Simple" => DebugDisplayMode.Simple,
+      "Off" => DebugDisplayMode.Off
+    ], (key:String, value:DebugDisplayMode) ->
+      {
+        Preferences.debugDisplay = value;
+      }, Preferences.debugDisplay);
+
+    createPrefItemPercentage('Debug Display BG', "Adjust the debug display's background opacity.", function(value:Int):Void
+    {
+      Preferences.debugDisplayBGOpacity = value;
+    }, Preferences.debugDisplayBGOpacity);
+
+    createPrefItemNumber('DebugDisplay Offset', "Adjust the debug display's horizontal (X) position.", function(value:Float)
+    {
+      Preferences.debugDisplayOffsetX = Std.int(value);
+    }, null, Preferences.debugDisplayOffsetX, 0, 600, 10, 0);
+    #end
+
+    #if !mobile
+    createPrefItemCheckbox('Pause on Unfocus', 'When enabled, the game automatically pauses when losing focus.', function(value:Bool):Void
+    {
+      Preferences.autoPause = value;
+    }, Preferences.autoPause);
+
+    createPrefItemCheckbox('Launch in Fullscreen', 'When enabled, the game automatically starts up in fullscreen mode.', function(value:Bool):Void
+    {
+      Preferences.autoFullscreen = value;
+    }, Preferences.autoFullscreen);
+    #end
+
+    #if desktop
+    createPrefItemEnum(
+      'Screen Ratio',
+      'The widest screen shape the game stretches to. Auto fills any monitor, including ultrawide ones. 16:9 keeps black bars.',
+      [
+        '16:9' => '16:9',
+        '20:9' => '20:9',
+        '21:9' => '21:9',
+        '32:9' => '32:9',
+        'Auto' => 'Auto'
+      ],
+      function(key:String, value:String):Void
+      {
+        Preferences.displayRatio = value;
+      },
+      Preferences.displayRatio
+    );
+    #end
+
+    #if !(mobile || web)
+    createPrefItemEnum('VSync', "When enabled, the game attempts to match the framerate with your monitor's refresh rate.", [
+      "Off" => WindowVSyncMode.OFF,
+      "On" => WindowVSyncMode.ON,
+      "Adaptive" => WindowVSyncMode.ADAPTIVE,
+    ], function(key:String, value:WindowVSyncMode):Void
+    {
+      Preferences.vsyncMode = value;
+    }, switch (Preferences.vsyncMode)
+      {
+        case WindowVSyncMode.OFF:
+          "Off";
+
+        case WindowVSyncMode.ON:
+          "On";
+
+        case WindowVSyncMode.ADAPTIVE:
+          "Adaptive";
+      });
+
+    createPrefItemCheckbox(
+      'Unlocked Framerate',
+      'When enabled, the framerate is unlocked.\nThis setting is mutually exclusive with FPS.',
+      function(value:Bool):Void
+      {
+        Preferences.unlockedFramerate = value;
+      },
+      Preferences.unlockedFramerate
+    );
+
+    createPrefItemNumber(
+      'FPS',
+      'The maximum framerate that the game targets.\nThis setting is mutually exclusive with Unlocked Framerate.',
+      function(value:Float)
+      {
+        Preferences.framerate = Std.int(value);
+      },
+      null,
+      Preferences.framerate,
+      30,
+      500,
+      5,
+      0
+    );
+    #end
+
+    createPrefItemCheckbox(
+      'Boost Framerate',
+      'When enabled, the game automatically lowers quality and frees memory if the framerate drops too low, to help keep things smooth.',
+      function(value:Bool):Void
+      {
+        Preferences.boostFramerate = value;
+        FunkinDebugDisplay.setAutoBoostEnabled(value);
+      },
+      Preferences.boostFramerate
+    );
+
+    createPrefItemEnum('Boost Sensitivity', 'How aggressively Boost Framerate reacts to framerate drops.', [
+      "Light" => "light",
+      "Normal" => "normal",
+      "Aggressive" => "aggressive",
+    ], function(key:String, value:String):Void
+    {
+      Preferences.boostSensitivity = value;
+    }, switch (Preferences.boostSensitivity)
+      {
+        case "light":
+          "Light";
+
+        case "aggressive":
+          "Aggressive";
+
+        default:
+          "Normal";
+      }, Preferences.boostFramerate);
+
+    #if FEATURE_SCREENSHOTS
+    createPrefItemCheckbox('Hide Mouse', 'When enabled, the mouse is hidden while taking a screenshot.', function(value:Bool):Void
+    {
+      Preferences.shouldHideMouse = value;
+    }, Preferences.shouldHideMouse);
+
+    createPrefItemCheckbox('Fancy Preview', 'When enabled, a preview is shown after taking a screenshot.', function(value:Bool):Void
+    {
+      Preferences.fancyPreview = value;
+    }, Preferences.fancyPreview);
+
+    createPrefItemCheckbox('Preview on Save', 'When enabled, the preview is only shown after a screenshot is saved.', function(value:Bool):Void
+    {
+      Preferences.previewOnSave = value;
+    }, Preferences.previewOnSave);
+    #end
+
+    #if FEATURE_DISCORD_RPC
+    createPrefItemCheckbox('Discord RPC', 'Toggles Discord RPC.', function(value:Bool):Void
+    {
+      Preferences.enabledDiscordRPC = value;
+    }, Preferences.enabledDiscordRPC);
+    #end
+
+    #if mobile
+    createPrefItemEnum('Storage Type', 'Which folder the app uses for its files.', ["Data" => "data", "External" => "external"], (key:String, value:String) ->
+    {
+      Preferences.storageType = value;
+    }, Preferences.storageType);
+    #end
+
+    #if mobile
+    // Make sure the initial state is correct immediately after all
+    // preferences have been created.
+    updateHitboxDependentPreferences();
+    #end
+  }
+
+  #if mobile
+  /**
+   * Updates all preferences whose availability depends on the current
+   * hitbox mode or an external input device.
+   *
+   * Four Lanes:
+   * - Downscroll: available
+   * - Middlescroll: available
+   * - Invisible Hitbox: available
+   *
+   * Arrows:
+   * - Downscroll/Middlescroll only available with an external input device
+   * - Invisible Hitbox unavailable
+   *
+   * External input device:
+   * - Downscroll/Middlescroll available regardless of hitbox mode
+   */
+  function updateHitboxDependentPreferences():Void
+  {
+    var fourLanes:Bool = Preferences.controlsScheme == FunkinHitboxControlSchemes.FourLanes;
+    var externalInput:Bool = ControlsHandler.hasExternalInputDevice;
+
+    var movementPreferencesAvailable:Bool = fourLanes || externalInput;
+
+    updatePreferenceAvailability('Downscroll', movementPreferencesAvailable);
+
+    updatePreferenceAvailability('Middlescroll', movementPreferencesAvailable);
+
+    updatePreferenceAvailability('Invisible Hitbox', fourLanes);
+  }
+
+  /**
+   * Updates the availability of a preference immediately on screen.
+   */
+  function updatePreferenceAvailability(prefName:String, available:Bool):Void
+  {
+    var item = items.getItem(prefName);
+    var checkbox = preferenceCheckboxes.get(prefName);
+
+    if (item != null)
+    {
+      item.available = available;
+
+      // If the currently selected item becomes unavailable,
+      // move the selection to another available item.
+      if (!available && item == items.selectedItem)
+      {
+        var currentIndex:Int = items.selectedIndex;
+        var newIndex:Int = -1;
+
+        // Prefer the item below.
+        for (i in currentIndex + 1...items.length)
+        {
+          if (items.members[i].available)
+          {
+            newIndex = i;
+            break;
+          }
+        }
+
+        // If there is nothing below, search above.
+        if (newIndex == -1)
+        {
+          var i:Int = currentIndex - 1;
+
+          while (i >= 0)
+          {
+            if (items.members[i].available)
+            {
+              newIndex = i;
+              break;
+            }
+
+            i--;
+          }
+        }
+
+        if (newIndex != -1)
+        {
+          items.selectItem(newIndex);
+        }
+      }
+    }
+
+    if (checkbox != null)
+    {
+      checkbox.alpha = available ? 1.0 : 0.5;
+    }
+  }
+  #end
+
+  override function update(elapsed:Float):Void
+  {
+    super.update(elapsed);
+
+    #if mobile
+    // Detect an external input device becoming available while the
+    // Preferences menu is already open.
+    updateHitboxDependentPreferences();
+    #end
+
+    if (items != null) camFollow.y = items.selectedItem.y;
+
+    items.forEach(function(daItem:TextMenuItem)
+    {
+      var thyOffset:Int = 0;
+      var thyTextWidth:Int = 0;
+
+      switch (Type.typeof(daItem))
+      {
+        case TClass(CheckboxPreferenceItem):
+          thyTextWidth = 0;
+          thyOffset = 0;
+
+        case TClass(EnumPreferenceItem):
+          thyTextWidth = cast(daItem, EnumPreferenceItem<Dynamic>).lefthandText.getWidth();
+          thyOffset = thyTextWidth - 75;
+
+        case TClass(NumberPreferenceItem):
+          thyTextWidth = cast(daItem, NumberPreferenceItem).lefthandText.getWidth();
+          thyOffset = thyTextWidth - 75;
+
+        default:
+      }
+
+      if (items.selectedItem == daItem)
+      {
+        thyOffset += 150;
+      }
+      else
+      {
+        thyOffset += 120;
+      }
+
+      daItem.x = thyOffset + funkin.ui.FullScreenScaleMode.gameNotchSize.x;
+    });
+  }
+
+  function createPrefItemCheckbox(prefName:String, prefDesc:String, onChange:Bool->Void, defaultValue:Bool, available:Bool = true):Void
+  {
+    var checkbox:CheckboxPreferenceItem = new CheckboxPreferenceItem(
+      funkin.ui.FullScreenScaleMode.gameNotchSize.x,
+      120 * (items.length - 1 + 1),
+      defaultValue,
+      available
+    );
+
+    items.createItem(0, (120 * items.length) + 30, prefName, AtlasFont.BOLD, function()
+    {
+      var value = !checkbox.currentValue;
+
+      onChange(value);
+      checkbox.currentValue = value;
+    }, false, available);
+
+    preferenceItems.add(checkbox);
+    preferenceDesc.push(prefDesc);
+
+    #if mobile
+    preferenceCheckboxes.set(prefName, checkbox);
+    #end
+  }
+
+  function createPrefItemNumber(prefName:String,
+    prefDesc:String,
+    onChange:Float->Void,
+    ?valueFormatter:Float->String,
+    defaultValue:Float,
+    min:Float,
+    max:Float,
+    step:Float = 0.1,
+    precision:Int):Void
+  {
+    var item = new NumberPreferenceItem(
+      funkin.ui.FullScreenScaleMode.gameNotchSize.x,
+      (120 * items.length) + 30,
+      prefName,
+      defaultValue,
+      min,
+      max,
+      step,
+      precision,
+      onChange,
+      valueFormatter
+    );
+
+    items.addItem(prefName, item);
+    preferenceItems.add(item.lefthandText);
+    preferenceDesc.push(prefDesc);
+  }
+
+  function createPrefItemPercentage(prefName:String, prefDesc:String, onChange:Int->Void, defaultValue:Int, min:Int = 0, max:Int = 100):Void
+  {
+    var newCallback = function(value:Float)
+    {
+      onChange(Std.int(value));
+    };
+
+    var formatter = function(value:Float)
+    {
+      return '${value}%';
+    };
+
+    var item = new NumberPreferenceItem(
+      funkin.ui.FullScreenScaleMode.gameNotchSize.x,
+      (120 * items.length) + 30,
+      prefName,
+      defaultValue,
+      min,
+      max,
+      10,
+      0,
+      newCallback,
+      formatter
+    );
+
+    items.addItem(prefName, item);
+    preferenceItems.add(item.lefthandText);
+    preferenceDesc.push(prefDesc);
+  }
+
+  function createPrefItemEnum<T>(prefName:String,
+    prefDesc:String,
+    values:Map<String, T>,
+    onChange:String->T->Void,
+    defaultKey:String,
+    available:Bool = true):Void
+  {
+    var item = new EnumPreferenceItem<T>(funkin.ui.FullScreenScaleMode.gameNotchSize.x, (120 * items.length) + 30, prefName, values, defaultKey, onChange);
+
+    items.addItem(prefName, item);
+    preferenceItems.add(item.lefthandText);
+    preferenceDesc.push(prefDesc);
+  }
+
+  override function exit():Void
+  {
+    camFollow.setPosition(640, 30);
+    menuCamera.snapToTarget();
+    super.exit();
+  }
+}

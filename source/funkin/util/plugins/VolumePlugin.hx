@@ -1,0 +1,57 @@
+package funkin.util.plugins;
+
+import flixel.FlxBasic;
+
+/**
+ * Handles volume control in a way that is compatible with alternate control schemes.
+ */
+@:nullSafety
+class VolumePlugin extends FlxBasic
+{
+  public function new()
+  {
+    super();
+  }
+
+  /**
+   * Initialize the plugin.
+   */
+  public static function initialize():Void
+  {
+    FlxG.plugins.addPlugin(new VolumePlugin());
+  }
+
+  override public function update(elapsed:Float):Void
+  {
+    super.update(elapsed);
+
+    var isHaxeUIFocused:Bool = #if FEATURE_HAXEUI haxe.ui.focus.FocusManager.instance?.focus != null #else false #end;
+
+    var focused:Null<openfl.display.InteractiveObject> = FlxG.stage?.focus;
+    var isTextInputFocused:Bool = focused != null && Std.isOfType(focused, openfl.text.TextField) && cast(focused, openfl.text.TextField).type == openfl.text.TextFieldType.INPUT;
+
+    if (!isHaxeUIFocused && !isTextInputFocused)
+    {
+      // Rebindable volume keys.
+      #if !mobile
+      var showcaseKey:Bool = funkin.play.PlayState.instance != null
+        && !funkin.play.PlayState.instance.isGamePaused
+        && (FlxG.keys.justPressed.ZERO || FlxG.keys.justPressed.NUMPADZERO);
+      #else
+      var showcaseKey:Bool = false;
+      #end
+
+      if (showcaseKey) {}
+      else if (PlayerSettings.player1.controls.VOLUME_MUTE) FlxG.sound.toggleMuted();
+      else if (PlayerSettings.player1.controls.VOLUME_UP) FlxG.sound.changeVolume(0.1);
+      else if (PlayerSettings.player1.controls.VOLUME_DOWN) FlxG.sound.changeVolume(-0.1);
+    }
+  }
+
+  override public function destroy():Void
+  {
+    if (FlxG.plugins.list.contains(this)) FlxG.plugins.remove(this);
+
+    super.destroy();
+  }
+}

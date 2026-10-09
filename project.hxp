@@ -1,0 +1,2094 @@
+package;
+
+import hxp.*;
+import lime.tools.*;
+import sys.FileSystem;
+import sys.io.File;
+import haxe.io.Bytes;
+import haxe.io.Path;
+import haxe.ds.Map;
+import haxe.xml.Printer;
+
+using StringTools;
+using tools.AnsiUtil;
+
+@:nullSafety
+class Project extends HXProject
+{
+  static final VERSION:String = "0.8.8";
+
+  static final BUILD_NUMBER:Int = 340;
+
+  static final MOON_VERSION:String = '0.1.2';
+
+  static final TITLE:String = "Friday Night Funkin': Moon Engine";
+
+  static final TITLE_MOBILE:String = "FNF: Moon Engine";
+
+  static final ICON_DESKTOP:String = "";
+
+  static final ICON_MOBILE:String = "";
+
+  static final PACKAGE_NAME:String = "me.funkin.moon";
+
+  static final EXECUTABLE_NAME:String = "MoonEngine";
+
+  static final SOURCE_DIR:String = "source";
+
+  static final TEMPLATES_DIR:String = "templates";
+
+  static final PRELOADER:String = "funkin.ui.transition.preload.FunkinPreloader";
+
+  static final MAIN_CLASS:String = "Main";
+
+  static final COMPANY:String = "The Squere' Team";
+
+  static final LANGUAGES:Array<String> = ["en"];
+
+  static var envConfig:Null<Map<String, Dynamic>> = null;
+
+  static final ANDROID_EXTENSIONS:Array<String> = [
+    "funkin.extensions.CallbackUtil",
+    "funkin.extensions.FNFLoaderExtension",
+    "funkin.extensions.AudioSession"
+  ];
+
+  static var IOS_TEAM_ID:String = "Z7G7AVNGSH";
+  static final IOS_DEPLOYMENT_TARGET:String = "16.0";
+  static final IOS_BUNDLE_SUFFIX:String = "";
+
+  static var astcExcludes:Array<String> = [];
+
+  static final PREBUILD_HX:String = "source/Prebuild.hx";
+  static final POSTBUILD_HX:String = "source/Postbuild.hx";
+
+  static final EXCLUDE_ASSETS:Array<String> = [
+    ".*",
+    "cvs",
+    "thumbs.db",
+    "desktop.ini",
+    "*.hash",
+    "*.md",
+    "*.fla",
+    "*/.git*"
+  ];
+
+  static final EXCLUDE_ASSETS_WEB:Array<String> = [];
+  static final EXCLUDE_ASSETS_NATIVE:Array<String> = [];
+
+  static final EXCLUDE_ASSETS_CENSORED:Array<String> = ["stressCutscene.mp4", "stressPicoCutscene.mp4", "darnellCutscene.mp4"];
+
+  static final EXCLUDE_ASSETS_UNCENSORED:Array<String> = [
+    "stressCutscene-censored.mp4",
+    "stressPicoCutscene-censored.mp4",
+    "darnellCutscene-censored.mp4"
+  ];
+
+  static final EMBED_SONGS_AUDIO:Array<String> = ["spaghetti"];
+
+  static final CENSOR_EXPLETIVES:FeatureFlag = "CENSOR_EXPLETIVES";
+  static final EMBED_ASSETS:FeatureFlag = "EMBED_ASSETS";
+  static final EXCLUDE_ARMV7:FeatureFlag = "EXCLUDE_ARMV7";
+  static final FORCE_BLEND_SHADER:FeatureFlag = "FORCE_BLEND_SHADER";
+  static final GITHUB_BUILD:FeatureFlag = "GITHUB_BUILD";
+  static final HARDCODED_CREDITS:FeatureFlag = "HARDCODED_CREDITS";
+  static final PRELOAD_ALL:FeatureFlag = "PRELOAD_ALL";
+  static final REDIRECT_ASSETS_FOLDER:FeatureFlag = "REDIRECT_ASSETS_FOLDER";
+  static final TESTING_ADS:FeatureFlag = "TESTING_ADS";
+  static final UNLOCK_EVERYTHING:FeatureFlag = "UNLOCK_EVERYTHING";
+  static final VERBOSE_ASSET_CACHE:FeatureFlag = "VERBOSE_ASSET_CACHE";
+
+  static final FEATURE_COMPRESSED_TEXTURES:FeatureFlag = "FEATURE_COMPRESSED_TEXTURES";
+  static final FEATURE_DEBUG_FUNCTIONS:FeatureFlag = "FEATURE_DEBUG_FUNCTIONS";
+  static final FEATURE_DEBUG_MENU:FeatureFlag = "FEATURE_DEBUG_MENU";
+  static final FEATURE_DEBUG_TRACY:FeatureFlag = "FEATURE_DEBUG_TRACY";
+  static final FEATURE_DISCORD_RPC:FeatureFlag = "FEATURE_DISCORD_RPC";
+  static final FEATURE_MOBILE_RPC:FeatureFlag = "FEATURE_MOBILE_RPC";
+
+  static final FEATURE_HXRPC:FeatureFlag = "FEATURE_HXRPC";
+  static final FEATURE_LOST_FOCUS_VOLUME:FeatureFlag = "FEATURE_LOST_FOCUS_VOLUME";
+  static final FEATURE_FILE_DROP:FeatureFlag = "FEATURE_FILE_DROP";
+  static final FEATURE_FUNKVIS:FeatureFlag = "FEATURE_FUNKVIS";
+  static final FEATURE_GHOST_TAPPING:FeatureFlag = "FEATURE_GHOST_TAPPING";
+  static final FEATURE_GPU_TEXTURES:FeatureFlag = "FEATURE_GPU_TEXTURES";
+  static final FEATURE_HAPTICS:FeatureFlag = "FEATURE_HAPTICS";
+  static final FEATURE_LAG_ADJUSTMENT:FeatureFlag = "FEATURE_LAG_ADJUSTMENT";
+  static final FEATURE_HIGH_DPI:FeatureFlag = "FEATURE_HIGH_DPI";
+  static final FEATURE_LOG_TRACE:FeatureFlag = "FEATURE_LOG_TRACE";
+  static final FEATURE_DEBUG_FILE_LOGGING:FeatureFlag = "FEATURE_DEBUG_FILE_LOGGING";
+  static final FEATURE_NATIVE_CRASH_HANDLER:FeatureFlag = "FEATURE_NATIVE_CRASH_HANDLER";
+  static final FEATURE_NATIVE_VIDEO_RECORDER:FeatureFlag = "FEATURE_NATIVE_VIDEO_RECORDER";
+  static final FEATURE_MOBILE_ADVERTISEMENTS:FeatureFlag = "FEATURE_MOBILE_ADVERTISEMENTS";
+  static final FEATURE_MOBILE_IAP:FeatureFlag = "FEATURE_MOBILE_IAP";
+  static final FEATURE_MOBILE_IAR:FeatureFlag = "FEATURE_MOBILE_IAR";
+  static final FEATURE_MULTITHREADING:FeatureFlag = "FEATURE_MULTITHREADING";
+  static final FEATURE_MOBILE_WEBVIEW:FeatureFlag = "FEATURE_MOBILE_WEBVIEW";
+  static final FEATURE_MOBILE_AGESIGNALS:FeatureFlag = "FEATURE_MOBILE_AGESIGNALS";
+  static final FEATURE_NAUGHTYNESS:FeatureFlag = "FEATURE_NAUGHTYNESS";
+  static final FEATURE_ONE_CLICK_INSTALL:FeatureFlag = "FEATURE_ONE_CLICK_INSTALL";
+  static final FEATURE_NEWGROUNDS:FeatureFlag = "FEATURE_NEWGROUNDS";
+  static final FEATURE_NEWGROUNDS_AUTOLOGIN:FeatureFlag = "FEATURE_NEWGROUNDS_AUTOLOGIN";
+  static final FEATURE_NEWGROUNDS_DEBUG:FeatureFlag = "FEATURE_NEWGROUNDS_DEBUG";
+  static final FEATURE_NEWGROUNDS_EVENTS:FeatureFlag = "FEATURE_NEWGROUNDS_EVENTS";
+  static final FEATURE_NEWGROUNDS_TESTING_MEDALS:FeatureFlag = "FEATURE_NEWGROUNDS_TESTING_MEDALS";
+  static final FEATURE_OPEN_URL:FeatureFlag = "FEATURE_OPEN_URL";
+  static final FEATURE_PARTIAL_SOUNDS:FeatureFlag = "FEATURE_PARTIAL_SOUNDS";
+  static final FEATURE_POLYMOD_MODS:FeatureFlag = "FEATURE_POLYMOD_MODS";
+  static final FEATURE_CPPIA:FeatureFlag = "FEATURE_CPPIA";
+  static final FEATURE_RESULTS_DEBUG:FeatureFlag = "FEATURE_RESULTS_DEBUG";
+  static final FEATURE_SCREENSHOTS:FeatureFlag = "FEATURE_SCREENSHOTS";
+  static final FEATURE_HAXEUI:FeatureFlag = "FEATURE_HAXEUI";
+  static final FEATURE_ANIMATION_EDITOR:FeatureFlag = "FEATURE_ANIMATION_EDITOR";
+  static final FEATURE_CHART_EDITOR:FeatureFlag = "FEATURE_CHART_EDITOR";
+  static final FEATURE_STAGE_EDITOR:FeatureFlag = "FEATURE_STAGE_EDITOR";
+  static final FEATURE_STRICT_ASSET_CACHING:FeatureFlag = "FEATURE_STRICT_ASSET_CACHING";
+  static final FEATURE_CAMERA_EDITOR:FeatureFlag = "FEATURE_CAMERA_EDITOR";
+  static final FEATURE_MUSIC_EDITOR:FeatureFlag = "FEATURE_MUSIC_EDITOR";
+  static final FEATURE_MODCHART_EDITOR:FeatureFlag = "FEATURE_MODCHART_EDITOR";
+  static final FEATURE_TOUCH_CONTROLS:FeatureFlag = "FEATURE_TOUCH_CONTROLS";
+  static final FEATURE_TOUCH_HERE_TO_PLAY:FeatureFlag = "FEATURE_TOUCH_HERE_TO_PLAY";
+  static final FEATURE_MACOS_GESTURES:FeatureFlag = "FEATURE_MACOS_GESTURES";
+  static final FEATURE_VIDEO_PLAYBACK:FeatureFlag = "FEATURE_VIDEO_PLAYBACK";
+  static final FEATURE_VIDEO_SUBTITLES:FeatureFlag = "FEATURE_VIDEO_SUBTITLES";
+
+  static final FEATURE_DEBUG_DISPLAY:FeatureFlag = "FEATURE_DEBUG_DISPLAY";
+  static final FEATURE_ONLINE:FeatureFlag = "FEATURE_ONLINE";
+  static final FEATURE_3D_RENDERING:FeatureFlag = "FEATURE_3D_RENDERING";
+  static final FEATURE_AWAY3D:FeatureFlag = "FEATURE_AWAY3D";
+  static final FEATURE_LUA_SCRIPTS:FeatureFlag = "FEATURE_LUA_SCRIPTS";
+  static final FEATURE_SCRIPT_EDITOR:FeatureFlag = "FEATURE_SCRIPT_EDITOR";
+  static final LUA_ALLOWED:FeatureFlag = "LUA_ALLOWED";
+  static final FEATURE_MOBILE_BATTERY_SAVER:FeatureFlag = "FEATURE_MOBILE_BATTERY_SAVER";
+
+  static final FEATURE_MOBILE_SAFE_AREA:FeatureFlag = "FEATURE_MOBILE_SAFE_AREA";
+  static final FEATURE_MOBILE_SUSPEND_ON_BACKGROUND:FeatureFlag = "FEATURE_MOBILE_SUSPEND_ON_BACKGROUND";
+  static final FEATURE_MOBILE_PERFORMANCE_OVERLAY:FeatureFlag = "FEATURE_MOBILE_PERFORMANCE_OVERLAY";
+  static final FEATURE_MOBILE_ADAPTIVE_RESOLUTION:FeatureFlag = "FEATURE_MOBILE_ADAPTIVE_RESOLUTION";
+  static final FEATURE_MOBILE_GESTURE_NAV_PADDING:FeatureFlag = "FEATURE_MOBILE_GESTURE_NAV_PADDING";
+  static final FEATURE_MOBILE_STORAGE_ACCESS_FRAMEWORK:FeatureFlag = "FEATURE_MOBILE_STORAGE_ACCESS_FRAMEWORK";
+  static final FEATURE_MOBILE_MODMENU_HAPTICS:FeatureFlag = "FEATURE_MOBILE_MODMENU_HAPTICS";
+
+  public function new()
+  {
+    super();
+
+    #if !target.unicode
+    if (isWindowsHost())
+    {
+      Sys.command("chcp 65001 > nul");
+    }
+    #end
+
+    envConfig = readEnvironmentFile("./.env");
+
+    flair();
+    displayTarget();
+    configureFeatureFlags();
+    configureApp();
+    configureOutputDir();
+
+    if (isRun() || isInstall() || isUninstall())
+    {
+      return;
+    }
+
+    configureCompileDefines();
+    configureIncludeMacros();
+    configureCustomMacros();
+    configurePolymod();
+    configureHaxelibs();
+    configureASTCTextures();
+    configureAssets();
+    configureBuildInfo();
+
+    if (!isLinux())
+    {
+      configureIcons();
+    }
+
+    if (FEATURE_MOBILE_ADVERTISEMENTS.isEnabled(this))
+    {
+      configureAdMobKeys();
+    }
+
+    if (isAndroid())
+    {
+      configureAndroid();
+    }
+
+    if (isIOS())
+    {
+      configureIOS();
+    }
+
+    if (isCPP())
+    {
+      buildHxCppTools();
+    }
+
+    if (!(isDisplay() || isCleanCommand()))
+    {
+      checkLibraries();
+    }
+
+    if (FEATURE_CPPIA.isEnabled(this))
+    {
+      configureCppiaSdk();
+    }
+  }
+
+  function excludeFromScripting()
+  {
+    var nativePackages:Array<String> = [
+      'hxvlc',
+      'hxdiscord_rpc',
+      'hxdiscord_social_sdk',
+      'grig.audio.cpp',
+      'extension',
+      'funkin.api.discord',
+      'funkin.external',
+      'funkin.mobile.util',
+      'funkin.modding.install'
+    ];
+
+    for (pack in nativePackages)
+      addHaxeMacro('haxe.macro.Compiler.addGlobalMetadata("$pack", "@:hscriptBaseCreated", true, true, false)');
+  }
+
+  function configureCppiaSdk()
+  {
+    if (isDisplay() || isCleanCommand()) return;
+
+    var target:Null<String> = isWindows() ? "windows" : isMac() ? "mac" : isLinux() ? "linux" : null;
+    if (target == null) return;
+
+    var config:String = isDebug() ? "debug" : "release";
+    var outputDir = 'sdk/$target/$config';
+    var script = 'scripts/cppia/sdk/build_cppia_sdk';
+
+    if (isWindowsHost())
+    {
+      postBuildCallbacks.push(new CLICommand("powershell",
+        ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", '$script.ps1', "-Target", target, "-Config", config, ".", outputDir]));
+    }
+    else
+    {
+      postBuildCallbacks.push(new CLICommand("bash", ['$script.sh', "--target", target, "--config", config, ".", outputDir]));
+    }
+  }
+
+  function flair()
+  {
+    info("Friday Night Funkin' - " + VERSION);
+    info("Moon Engine:    " + MOON_VERSION);
+    info("Build Number:   " + BUILD_NUMBER);
+    info("Initializing build...");
+    info("Git Branch:     " + getGitBranch());
+    info("Git Commit:     " + getGitCommit());
+    info("Git Modified?   " + getGitModified());
+    info("Display?        " + isDisplay());
+  }
+
+  function configureApp()
+  {
+    this.meta.title = isMobile() ? TITLE_MOBILE : TITLE;
+    this.meta.version = VERSION;
+    this.meta.packageName = PACKAGE_NAME;
+    this.meta.company = COMPANY;
+
+    this.app.main = MAIN_CLASS;
+    this.app.file = EXECUTABLE_NAME;
+    this.app.preloader = PRELOADER;
+
+    this.sources.push(SOURCE_DIR);
+    this.templatePaths.push(TEMPLATES_DIR);
+
+    this.preBuildCallbacks.push(buildHaxeCLICommand(PREBUILD_HX));
+    this.postBuildCallbacks.push(buildHaxeCLICommand(POSTBUILD_HX));
+
+    this.preBuildCallbacks.push(buildCLICommand("python scripts/bump_build.py"));
+
+    this.languages = LANGUAGES;
+    this.meta.buildNumber = Std.string(BUILD_NUMBER);
+
+    this.window.fps = 60;
+    this.window.width = 1280;
+    this.window.height = 720;
+    this.window.background = FEATURE_DEBUG_FUNCTIONS.isEnabled(this) ? 0xFFFF00FF : 0xFF000000;
+    this.window.hardware = true;
+    this.window.vsync = false;
+    this.window.allowHighDPI = FEATURE_HIGH_DPI.isEnabled(this);
+
+    if (isWeb())
+    {
+      this.window.resizable = true;
+    }
+
+    if (isDesktop())
+    {
+      this.window.orientation = Orientation.LANDSCAPE;
+      this.window.fullscreen = false;
+      this.window.resizable = true;
+      this.window.vsync = false;
+    }
+
+    if (isMobile())
+    {
+      this.window.orientation = Orientation.LANDSCAPE;
+      this.window.fullscreen = true;
+      this.window.resizable = false;
+      this.window.borderless = true;
+      this.window.width = 0;
+      this.window.height = 0;
+    }
+
+    if (isAndroid())
+    {
+      if (EXCLUDE_ARMV7.isEnabled(this))
+      {
+        this.excludeArchitectures.push(Architecture.ARMV7);
+      }
+
+      if (isRelease())
+      {
+        if (envConfig != null)
+        {
+          keystore = new Keystore();
+          keystore.path = Std.string(envConfig.get('KEYSTORE_PATH'));
+          keystore.alias = Std.string(envConfig.get('KEYSTORE_ALIAS'));
+          keystore.password = Std.string(envConfig.get('KEYSTORE_PASSWORD'));
+        }
+
+        if (isBundle())
+        {
+          config.set("android.gradle-project-directory", "bin-bundle");
+        }
+      }
+    }
+  }
+
+  function displayTarget()
+  {
+    switch (this.target)
+    {
+      case Platform.WINDOWS:
+        info('Target Platform: Windows');
+      case Platform.MAC:
+        info('Target Platform: MacOS');
+      case Platform.LINUX:
+        info('Target Platform: Linux');
+      case Platform.ANDROID:
+        info('Target Platform: Android');
+      case Platform.IOS:
+        info('Target Platform: IOS');
+      case Platform.HTML5:
+        info('Target Platform: HTML5');
+      default:
+        error('Unsupported platform (got ${target})');
+    }
+
+    switch (this.platformType)
+    {
+      case PlatformType.DESKTOP:
+        info('Target Platform Type: Desktop');
+      case PlatformType.MOBILE:
+        info('Target Platform Type: Mobile');
+      case PlatformType.WEB:
+        info('Target Platform Type: Web');
+      case PlatformType.CONSOLE:
+        info('Target Platform Type: Console');
+      default:
+        error('Unknown platform type (got ${platformType})');
+    }
+
+    if (isWeb())
+    {
+      info('Target Language: JavaScript (HTML5)');
+    }
+    else if (isCPP())
+    {
+      info('Target Language: C++');
+    }
+    else
+    {
+      error('Unsupported target language!');
+    }
+
+    for (arch in this.architectures)
+    {
+      switch (arch)
+      {
+        case Architecture.X86:
+          info('Target Architecture: x86');
+        case Architecture.X64:
+          info('Target Architecture: x64');
+        case Architecture.ARMV7:
+          info('Target Architecture: ARMv7');
+        case Architecture.ARM64:
+          info('Target Architecture: ARM64');
+        case null:
+          if (!isWeb())
+          {
+            error('Unsupported architecture (got null on non-web platform)');
+          }
+          else
+          {
+            info('Target Architecture: Web');
+          }
+        default:
+          error('Unsupported architecture (got ${arch})');
+      }
+    }
+
+    if (isIOS())
+    {
+      info('iOS Simulator Build: ' + isIOSSimulator());
+    }
+  }
+
+  function configureFeatureFlags()
+  {
+    GITHUB_BUILD.apply(this, false);
+    EXCLUDE_ARMV7.apply(this, false);
+    VERBOSE_ASSET_CACHE.apply(this, false);
+    LUA_ALLOWED.apply(this, true);
+
+    HARDCODED_CREDITS.apply(this, true);
+    UNLOCK_EVERYTHING.apply(this, true);
+
+    EMBED_ASSETS.apply(this, isWeb());
+    PRELOAD_ALL.apply(this, !isWeb());
+
+    REDIRECT_ASSETS_FOLDER.apply(this, isDebug() && isDesktop());
+
+    CENSOR_EXPLETIVES.apply(this, isMobile());
+
+    FORCE_BLEND_SHADER.apply(this, isAndroid());
+
+    FEATURE_FUNKVIS.apply(this, true);
+    FEATURE_LOG_TRACE.apply(this, true);
+    FEATURE_DEBUG_FILE_LOGGING.apply(this, FEATURE_DEBUG_FUNCTIONS.isEnabled(this));
+    FEATURE_NATIVE_CRASH_HANDLER.apply(this, isDesktop() && isCPP());
+    FEATURE_NATIVE_VIDEO_RECORDER.apply(this, isWindows() && isCPP());
+    FEATURE_NAUGHTYNESS.apply(this, true);
+    FEATURE_OPEN_URL.apply(this, true);
+    FEATURE_PARTIAL_SOUNDS.apply(this, true);
+    FEATURE_MULTITHREADING.apply(this, true);
+    FEATURE_POLYMOD_MODS.apply(this, true);
+    FEATURE_LUA_SCRIPTS.apply(this, true);
+
+
+    FEATURE_CPPIA.apply(this, isCPP() && FEATURE_POLYMOD_MODS.isEnabled(this) && !isIOS());
+
+    FEATURE_VIDEO_PLAYBACK.apply(this, true);
+    FEATURE_VIDEO_SUBTITLES.apply(this, FEATURE_VIDEO_PLAYBACK.isEnabled(this) && !isWeb());
+
+    FEATURE_DEBUG_FUNCTIONS.apply(this, isDebug() || GITHUB_BUILD.isEnabled(this));
+    FEATURE_RESULTS_DEBUG.apply(this, isDebug() || GITHUB_BUILD.isEnabled(this));
+
+    FEATURE_DISCORD_RPC.apply(this, isDesktop() && !FEATURE_DEBUG_FUNCTIONS.isEnabled(this));
+    FEATURE_MOBILE_RPC.apply(this, isMobile());
+    FEATURE_HXRPC.apply(this, isDesktop() || isMobile());
+
+    FEATURE_LOST_FOCUS_VOLUME.apply(this, isDesktop());
+
+    FEATURE_NEWGROUNDS.apply(this, true);
+    FEATURE_NEWGROUNDS_DEBUG.apply(this, false);
+    FEATURE_NEWGROUNDS_TESTING_MEDALS.apply(this, FEATURE_NEWGROUNDS.isEnabled(this) && FEATURE_DEBUG_FUNCTIONS.isEnabled(this));
+    FEATURE_NEWGROUNDS_AUTOLOGIN.apply(this, FEATURE_NEWGROUNDS.isEnabled(this) && isWeb());
+    FEATURE_NEWGROUNDS_EVENTS.apply(this, FEATURE_NEWGROUNDS.isEnabled(this));
+
+    FEATURE_DEBUG_MENU.apply(this, !isWeb());
+
+    var editorsEnabled:Bool = !isWeb();
+    FEATURE_ANIMATION_EDITOR.apply(this, editorsEnabled);
+    FEATURE_CHART_EDITOR.apply(this, editorsEnabled);
+    FEATURE_STAGE_EDITOR.apply(this, editorsEnabled);
+    FEATURE_CAMERA_EDITOR.apply(this, editorsEnabled);
+    FEATURE_MUSIC_EDITOR.apply(this, editorsEnabled);
+    FEATURE_SCRIPT_EDITOR.apply(this, editorsEnabled);
+    FEATURE_MODCHART_EDITOR.apply(this, editorsEnabled);
+    FEATURE_HAXEUI.apply(
+      this, FEATURE_ANIMATION_EDITOR.isEnabled(
+        this
+      ) || FEATURE_CHART_EDITOR.isEnabled(this) || FEATURE_STAGE_EDITOR.isEnabled(this) || FEATURE_CAMERA_EDITOR.isEnabled(this) || FEATURE_MODCHART_EDITOR.isEnabled(this) || FEATURE_MUSIC_EDITOR.isEnabled(this) || FEATURE_SCRIPT_EDITOR.isEnabled(this)
+    );
+
+    FEATURE_LAG_ADJUSTMENT.apply(this, !isWeb());
+    FEATURE_SCREENSHOTS.apply(this, isDesktop());
+    FEATURE_FILE_DROP.apply(this, !isMobile());
+    FEATURE_ONE_CLICK_INSTALL.apply(this, isDesktop() || isMobile());
+    FEATURE_TOUCH_HERE_TO_PLAY.apply(this, isWeb());
+
+    FEATURE_HAPTICS.apply(this, isMobile());
+    FEATURE_TOUCH_CONTROLS.apply(this, isMobile());
+
+    FEATURE_MOBILE_ADVERTISEMENTS.apply(this, (isMobile() && isRelease()) && envConfig != null);
+    FEATURE_MOBILE_IAP.apply(this, (isMobile() && isRelease()) && envConfig != null);
+    FEATURE_MOBILE_IAR.apply(this, isMobile() && isRelease());
+    FEATURE_MOBILE_WEBVIEW.apply(this, isMobile() && FEATURE_NEWGROUNDS.isEnabled(this));
+    FEATURE_MOBILE_AGESIGNALS.apply(this, isMobile() && isRelease());
+
+    FEATURE_MOBILE_BATTERY_SAVER.apply(this, isMobile() && isRelease());
+    FEATURE_MOBILE_SAFE_AREA.apply(this, isMobile());
+    FEATURE_MOBILE_SUSPEND_ON_BACKGROUND.apply(this, isMobile() && !FEATURE_DEBUG_FUNCTIONS.isEnabled(this));
+    FEATURE_MOBILE_PERFORMANCE_OVERLAY.apply(this, isMobile() && FEATURE_DEBUG_FUNCTIONS.isEnabled(this));
+    FEATURE_MOBILE_ADAPTIVE_RESOLUTION.apply(this, isMobile() && isRelease());
+    FEATURE_MOBILE_GESTURE_NAV_PADDING.apply(this, isAndroid());
+    FEATURE_MOBILE_STORAGE_ACCESS_FRAMEWORK.apply(this, isAndroid() && FEATURE_POLYMOD_MODS.isEnabled(this));
+    FEATURE_MOBILE_MODMENU_HAPTICS.apply(this, isMobile() && FEATURE_HAPTICS.isEnabled(this));
+
+    FEATURE_HIGH_DPI.apply(this, !isMac());
+    FEATURE_MACOS_GESTURES.apply(this, isMac());
+
+    TESTING_ADS.apply(this, isDebug() && FEATURE_MOBILE_ADVERTISEMENTS.isEnabled(this));
+
+    FEATURE_GHOST_TAPPING.apply(this, isMobile());
+
+    FEATURE_COMPRESSED_TEXTURES.apply(this, isMobile() && isRelease() && !isIOSSimulator());
+
+    FEATURE_DEBUG_DISPLAY.apply(this, !isMobile() || FEATURE_DEBUG_FUNCTIONS.isEnabled(this));
+
+    if (isRun() || isInstall() || isUninstall())
+    {
+      return;
+    }
+
+
+    // Nem adianta ativar isso, o servidor ta offline.
+    // Don't enable this, the server is offline.
+    FEATURE_ONLINE.apply(this, false);
+
+    // Foxlite 0.2.9 (tag v0.2.9-beta) ships its own HScript compatibility macro, which replaces the
+    // 0.1.1 chain that conflicted with ScriptedFlxSprite. Desktop only until the mobile shaders are tested.
+    FEATURE_3D_RENDERING.apply(this, false);
+    // FEATURE_3D_RENDERING.apply(this, isDesktop() && isCPP());
+
+    // Disabled by default: Away3D 5.0.9 (published years ago) still assumes Lib.getTimer()
+    // returns Int/UInt, but current OpenFL returns Float there - a known, unresolved
+    // upstream incompatibility (see HaxeFlixel/flixel#3561 for the same root cause hitting
+    // other libraries). Causes build errors in View3D.hx, ParserBase.hx, AnimatorBase.hx.
+    // Re-enable once Away3D publishes a fix, or after patching the installed haxelib locally.
+    FEATURE_AWAY3D.apply(this, false);
+
+    renderFlagsTable();
+  }
+
+  function renderFlagsTable():Void
+  {
+    var enabledWidth:Int = 0;
+    var disabledWidth:Int = 0;
+    var enabledFlags:Array<String> = [];
+    var disabledFlags:Array<String> = [];
+    var unicodeCheck:String = "✓ ";
+    var unicodeCross:String = "× ";
+
+    for (flagStr in this.haxedefs.keys())
+    {
+      if (!flagStr.startsWith(FeatureFlag.INVERSE_PREFIX))
+      {
+        enabledWidth = Std.int(Math.max(flagStr.length + 3, enabledWidth));
+        enabledFlags.push(unicodeCheck + flagStr);
+      }
+      else
+      {
+        disabledWidth = Std.int(Math.max(flagStr.length, disabledWidth));
+        disabledFlags.push(unicodeCross + flagStr.substring(FeatureFlag.INVERSE_PREFIX.length));
+      }
+    }
+
+    enabledFlags.sort(function(a, b) return a > b ? 1 : -1);
+    disabledFlags.sort(function(a, b) return a > b ? 1 : -1);
+
+    var horizontalDivider:String = "".rpad("-", enabledWidth + disabledWidth);
+
+    info(horizontalDivider);
+    info("FEATURE FLAGS");
+    info('Enabled Flags $unicodeCheck'.rpad(" ", enabledWidth + 5) + 'Disabled Flags $unicodeCross');
+    info(horizontalDivider);
+
+    while (enabledFlags.length > 0 || disabledFlags.length > 0)
+    {
+      var outputLine:String = "";
+
+      if (enabledFlags.length > 0) outputLine += enabledFlags.shift();
+
+      outputLine = outputLine.rpad(" ", enabledWidth + 5);
+      outputLine += "| ";
+
+      if (disabledFlags.length > 0) outputLine += disabledFlags.shift() ?? "";
+
+      info(outputLine);
+    }
+
+    info(horizontalDivider);
+  }
+
+  function configureCompileDefines()
+  {
+    setHaxedef("funkin", VERSION);
+    setHaxedef("openfl-enable-handle-error");
+    setHaxedef("openfl_pool_events");
+    setHaxedef("lime_disable_assets_version");
+    setHaxedef("HXCPP_CHECK_POINTER");
+    setHaxedef("HXCPP_STACK_LINE");
+    setHaxedef("HXCPP_STACK_TRACE");
+    setHaxedef("hscriptPos");
+
+    if (FEATURE_CPPIA.isEnabled(this))
+    {
+      setHaxedef("scriptable");
+      setHaxedef("POLYMOD_CPPIA");
+
+      excludeFromScripting();
+    }
+
+    if (FEATURE_DEBUG_FUNCTIONS.isDisabled(this))
+    {
+      setHaxedef("FLX_NO_DEBUG");
+      setHaxedef("analyzer-optimize");
+    }
+
+    if (FEATURE_LOG_TRACE.isDisabled(this))
+    {
+      setHaxedef("no-traces");
+    }
+
+    setHaxedef("FLX_NO_FOCUS_LOST_SCREEN");
+    setHaxedef("haxeui_no_mouse_reset");
+    setHaxedef("haxeui_dont_impose_base_class");
+
+    if (isRelease())
+    {
+      setHaxedef("NAPE_RELEASE_BUILD");
+    }
+
+    setHaxedef("message.reporting", "pretty");
+
+    if (FEATURE_DEBUG_TRACY.isEnabled(this))
+    {
+      setHaxedef("HXCPP_TELEMETRY");
+      setHaxedef("HXCPP_TRACY");
+      setHaxedef("HXCPP_TRACY_MEMORY");
+      setHaxedef("HXCPP_TRACY_ON_DEMAND");
+      setHaxedef("absolute-paths");
+    }
+
+    if (FEATURE_MULTITHREADING.isEnabled(this))
+    {
+      setHaxedef("lime_threads");
+    }
+  }
+
+  function configureIncludeMacros()
+  {
+    addHaxeFlag("-dce no");
+
+    addHaxeMacro(
+      "include('funkin', true, ['funkin.mobile.*', 'funkin.ui.debug.anim.*', 'funkin.ui.debug.charting.*', 'funkin.ui.debug.stage.*', 'funkin.ui.debug.stageeditor.*', 'funkin.ui.haxeui.*'])"
+    );
+
+    if (isMobile())
+    {
+      addHaxeMacro("include('funkin.mobile')");
+    }
+
+    if (FEATURE_HAXEUI.isEnabled(this))
+    {
+      if (FEATURE_ANIMATION_EDITOR.isEnabled(this))
+      {
+        addHaxeMacro("include('funkin.ui.debug.anim')");
+      }
+
+      if (FEATURE_CHART_EDITOR.isEnabled(this))
+      {
+        addHaxeMacro("include('funkin.ui.debug.charting')");
+      }
+
+      if (FEATURE_STAGE_EDITOR.isEnabled(this))
+      {
+        addHaxeMacro("include('funkin.ui.debug.stage')");
+        addHaxeMacro("include('funkin.ui.debug.stageeditor')");
+      }
+
+      if (FEATURE_CAMERA_EDITOR.isEnabled(this))
+      {
+        addHaxeMacro("include('funkin.ui.debug.cameraeditor')");
+      }
+
+      if (FEATURE_MODCHART_EDITOR.isEnabled(this))
+      {
+        addHaxeMacro("include('funkin.ui.debug.modcharteditor')");
+      }
+
+      if (FEATURE_MUSIC_EDITOR.isEnabled(this))
+      {
+        addHaxeMacro("include('funkin.ui.debug.music')");
+      }
+
+      addHaxeMacro("include('funkin.ui.haxeui')");
+      addHaxeMacro("include('haxe.ui.backend.flixel.components')");
+      addHaxeMacro("include('haxe.ui.core')");
+      addHaxeMacro("include('haxe.ui.components')");
+      addHaxeMacro("include('haxe.ui.containers')");
+      addHaxeMacro("include('haxe.ui.containers.dialogs')");
+      addHaxeMacro("include('haxe.ui.containers.menus')");
+      addHaxeMacro("include('haxe.ui.containers.properties')");
+    }
+
+    addHaxeMacro("include('animate')");
+    addHaxeMacro("include('openfl')");
+    addHaxeMacro("include('lime', true, ['lime.tools.*', 'lime._internal.*'])");
+    addHaxeMacro(
+      "include('flixel', true, [ 'flixel.addons.editors.spine.*', 'flixel.addons.nape.*', 'flixel.system.macros.*', 'flixel.addons.tile.FlxRayCastTilemap' ])"
+    );
+  }
+
+  function configureCustomMacros()
+  {
+    addHaxeMacro("addMetadata('@:build(funkin.util.macro.FlxMacro.buildFlxSprite())', 'flixel.FlxSprite')");
+  }
+
+  function configureOutputDir()
+  {
+    var buildDir = 'export/${isDebug() ? 'debug' : 'release'}';
+
+    if (FEATURE_DEBUG_TRACY.isEnabled(this)) buildDir += "-tracy";
+
+    info('Output directory: $buildDir');
+
+    buildDir += "/";
+    app.path = buildDir;
+
+    if (isWindows() && isCPP() && FEATURE_NATIVE_CRASH_HANDLER.isEnabled(this))
+    {
+      var pdbPath:String = Path.join([buildDir, 'windows', 'obj', 'Funkin.pdb']);
+      setenv("HXCPP_PDB_FILE", sys.FileSystem.absolutePath(pdbPath));
+    }
+  }
+
+  function configureAndroid()
+  {
+    javaPaths.push(Path.join([SOURCE_DIR, 'funkin/external/android/java']));
+
+    final modsFolderProvider:Xml = Xml.createElement('provider');
+    modsFolderProvider.set('android:authorities', '$PACKAGE_NAME.docprovider');
+    modsFolderProvider.set('android:name', 'funkin.provider.DataFolderProvider');
+    modsFolderProvider.set('android:grantUriPermissions', 'true');
+    modsFolderProvider.set('android:exported', 'true');
+    modsFolderProvider.set('android:permission', 'android.permission.MANAGE_DOCUMENTS');
+
+    final fnfcIntentFilter:Xml = Xml.createElement('intent-filter');
+    final action:Xml = Xml.createElement('action');
+    action.set('android:name', 'android.content.action.DOCUMENTS_PROVIDER');
+    fnfcIntentFilter.addChild(action);
+
+    modsFolderProvider.addChild(fnfcIntentFilter);
+
+    @:nullSafety(Off)
+    {
+      if (config.get('android.application').xmlChildren != null)
+      {
+        config.get('android.application').xmlChildren.push(Printer.print(modsFolderProvider, true));
+      }
+      else
+      {
+        config.get('android.application').xmlChildren = [Printer.print(modsFolderProvider, true)];
+      }
+    }
+
+    final intentFilters:Array<Xml> = [];
+
+    {
+      final fnfcIntentFilter:Xml = Xml.createElement('intent-filter');
+      final action:Xml = Xml.createElement('action');
+      action.set('android:name', 'android.intent.action.VIEW');
+      fnfcIntentFilter.addChild(action);
+
+      final fnfcIntentFilterCategories:Array<String> = [
+        "android.intent.category.DEFAULT",
+        "android.intent.category.BROWSABLE"
+      ];
+
+      for (categoryName in fnfcIntentFilterCategories)
+      {
+        final category:Xml = Xml.createElement('category');
+        category.set('android:name', categoryName);
+        fnfcIntentFilter.addChild(category);
+      }
+
+      final fnfcIntentFilterDatas:Map<String, Array<String>> = [
+        "android:mimeType" => ["application/zip"],
+        "android:scheme" => ["file", "content"],
+        "android:pathPattern" => [
+          ".*\\.fnfc",
+          ".*\\..*\\.fnfc",
+          ".*\\..*\\..*\\.fnfc",
+          ".*\\..*\\..*\\..*\\.fnfc",
+          ".*\\..*\\..*\\..*\\..*\\.fnfc"
+        ]
+      ];
+
+      for (key => values in fnfcIntentFilterDatas)
+      {
+        for (value in values)
+        {
+          final data:Xml = Xml.createElement("data");
+          data.set(key, value);
+          fnfcIntentFilter.addChild(data);
+        }
+      }
+
+      intentFilters.push(fnfcIntentFilter);
+    }
+
+    {
+      final fnfModUrlSchemeIntentFilter:Xml = Xml.createElement("intent-filter");
+      final action:Xml = Xml.createElement("action");
+      action.set("android:name", "android.intent.action.VIEW");
+      fnfModUrlSchemeIntentFilter.addChild(action);
+
+      final fnfModUrlSchemeIntentFilterCategories:Array<String> = [
+        "android.intent.category.DEFAULT",
+        "android.intent.category.BROWSABLE"
+      ];
+
+      for (categoryName in fnfModUrlSchemeIntentFilterCategories)
+      {
+        final category:Xml = Xml.createElement("category");
+        category.set("android:name", categoryName);
+        fnfModUrlSchemeIntentFilter.addChild(category);
+      }
+
+      final data:Xml = Xml.createElement("data");
+      data.set("android:scheme", "funkin");
+      fnfModUrlSchemeIntentFilter.addChild(data);
+
+      intentFilters.push(fnfModUrlSchemeIntentFilter);
+    }
+
+    for (filter in intentFilters)
+    {
+      @:nullSafety(Off)
+      {
+        if (config.get('android.activity').xmlChildren != null)
+        {
+          config.get('android.activity').xmlChildren.push(Printer.print(filter, true));
+        }
+        else
+        {
+          config.get('android.activity').xmlChildren = [Printer.print(filter, true)];
+        }
+      }
+    }
+
+    final extensions:Null<Array<String>> = config.getArrayString('android.extension');
+
+    for (extension in ANDROID_EXTENSIONS)
+    {
+      if (extensions == null || extensions != null && extensions.indexOf(extension) == -1)
+      {
+        config.push("android.extension", extension);
+      }
+    }
+  }
+
+  function configureIOS()
+  {
+    config.set("ios.deployment", IOS_DEPLOYMENT_TARGET);
+    config.set("ios.non-exempt-encryption", "false");
+    config.set("ios.team-id", IOS_TEAM_ID);
+
+    if (envConfig != null)
+    {
+      var teamId:Null<String> = Std.string(envConfig.get('IOS_TEAM_ID'));
+      if (teamId != null && teamId != "null") config.set("ios.team-id", teamId);
+
+      var identity:Null<String> = Std.string(envConfig.get('IOS_CODE_SIGN_IDENTITY'));
+      if (identity != null && identity != "null") config.set("ios.identity", identity);
+
+      var profile:Null<String> = Std.string(envConfig.get('IOS_PROVISIONING_PROFILE'));
+      if (profile != null && profile != "null") config.set("ios.provisioning-profile", profile);
+    }
+  }
+
+  function configurePolymod()
+  {
+    setHaxedef("POLYMOD_SCRIPT_CLASS_EXT", ".hx,.hxc,.hscript");
+    setHaxedef("POLYMOD_APPEND_FOLDER", "_append");
+    setHaxedef("POLYMOD_MERGE_FOLDER", "_merge");
+    setHaxedef("POLYMOD_ARCHIVE_MOD_EXT", ".zip,.fnfmod");
+    setHaxedef("POLYMOD_MOD_METADATA_FILE", "_polymod_meta.json");
+    setHaxedef("POLYMOD_MOD_ICON_FILE", "_polymod_icon.png,_polymod_icon.jpg,_polymod_icon.gif,_polymod_icon.webp");
+
+    if (isDebug())
+    {
+      setHaxedef("POLYMOD_DEBUG");
+    }
+  }
+
+  function configureHaxelibs()
+  {
+    addHaxelib('flixel');
+    addHaxelib('flixel-addons');
+
+    if (FEATURE_HAXEUI.isEnabled(this))
+    {
+      addHaxelib('haxeui-core');
+      addHaxelib('haxeui-flixel');
+    }
+
+    addHaxelib('polymod');
+    addHaxelib('flixel-animate');
+
+        if (FEATURE_3D_RENDERING.isEnabled(this))
+    {
+      addHaxelib('foxlite');
+    }
+
+    if (FEATURE_AWAY3D.isEnabled(this))
+    {
+      addHaxelib('away3d');
+    }
+
+    if (FEATURE_LUA_SCRIPTS.isEnabled(this))
+    {
+      addHaxelib('linc_luajit');
+    }
+
+    addHaxelib('json2object');
+    addHaxelib('jsonpath');
+    addHaxelib('jsonpatch');
+    addHaxelib('thx.core');
+    addHaxelib('thx.semver');
+
+    if (isDebug() && isCPP())
+    {
+      addHaxelib('hxcpp-debug-server');
+    }
+
+    if ((isDesktop() || isMobile()) && FEATURE_VIDEO_PLAYBACK.isEnabled(this))
+    {
+      addHaxelib('hxvlc');
+    }
+
+    if (isAndroid())
+    {
+      addHaxelib('extension-androidtools');
+    }
+
+    if (isLinux())
+    {
+      addHaxelib('hxgamemode');
+    }
+
+    if (FEATURE_DISCORD_RPC.isEnabled(this))
+    {
+      addHaxelib('hxdiscord_rpc');
+    }
+
+        if (FEATURE_HXRPC.isEnabled(this))
+    {
+      addHaxelib('hxrpc');
+    }
+
+    if (FEATURE_MULTITHREADING.isEnabled(this))
+    {
+      addHaxelib('haxe-concurrent');
+    }
+
+    if (FEATURE_NEWGROUNDS.isEnabled(this))
+    {
+      addHaxelib('newgrounds');
+    }
+
+    if (FEATURE_FUNKVIS.isEnabled(this))
+    {
+      addHaxelib('funkin.vis');
+      addHaxelib('grig.audio');
+    }
+
+    if (FEATURE_PARTIAL_SOUNDS.isEnabled(this))
+    {
+      addHaxelib('FlxPartialSound');
+    }
+
+    if (FEATURE_HAPTICS.isEnabled(this))
+    {
+      addHaxelib('extension-haptics');
+    }
+
+    if (FEATURE_MOBILE_ADVERTISEMENTS.isEnabled(this))
+    {
+      addHaxelib('extension-admob');
+    }
+
+    if (FEATURE_MOBILE_IAP.isEnabled(this))
+    {
+      addHaxelib('extension-iapcore');
+    }
+
+    if (FEATURE_MOBILE_IAR.isEnabled(this))
+    {
+      addHaxelib('extension-iarcore');
+    }
+
+    if (FEATURE_MOBILE_WEBVIEW.isEnabled(this))
+    {
+      addHaxelib('extension-webviewcore');
+    }
+
+    if (FEATURE_MOBILE_AGESIGNALS.isEnabled(this))
+    {
+      addHaxelib('extension-agesignals');
+    }
+  }
+
+  function configureAssets()
+  {
+    if (!(isDisplay() || isCleanCommand()))
+    {
+      clearAssets();
+    }
+
+    var exclude = EXCLUDE_ASSETS.concat(isWeb() ? EXCLUDE_ASSETS_WEB : EXCLUDE_ASSETS_NATIVE);
+
+    if (CENSOR_EXPLETIVES.isEnabled(this))
+    {
+      exclude = exclude.concat(EXCLUDE_ASSETS_CENSORED);
+    }
+    else
+    {
+      exclude = exclude.concat(EXCLUDE_ASSETS_UNCENSORED);
+    }
+
+    var shouldPreloadDefault = !isWeb();
+    var shouldEmbedDefault = false;
+
+    setHaxedef("disable_preload_default_library", !shouldPreloadDefault ? "1" : "0");
+
+    addAssetLibrary("default", shouldEmbedDefault, shouldPreloadDefault);
+    addAssetPath("assets", "assets", "default", ["*"], exclude, shouldEmbedDefault);
+
+    if (!HARDCODED_CREDITS.isEnabled(this))
+    {
+      addAsset("assets/exclude/ui/credits/credits.json", "assets/ui/credits/credits.json", "default", shouldEmbedDefault);
+    }
+
+    if (!FEATURE_ANIMATION_EDITOR.isEnabled(this)) removeAssetPath('assets/ui/editors/animation-editor', "default");
+    if (!FEATURE_CHART_EDITOR.isEnabled(this)) removeAssetPath('assets/ui/editors/chart-editor', "default");
+    if (!FEATURE_STAGE_EDITOR.isEnabled(this)) removeAssetPath('assets/ui/editors/stage-editor', "default");
+
+    var shouldEmbedFonts = true;
+    addAssetPath("assets/ui/fonts", null, "default", ["*"], exclude, shouldEmbedFonts);
+
+    var shouldEmbedArt = false;
+    var shouldPreloadArt = false;
+    addAssetLibrary("art", shouldEmbedArt, shouldPreloadArt);
+    addAsset("art/readme.txt", "do NOT readme.txt", "art", shouldEmbedArt);
+    addAsset("LICENSE.md", "LICENSE.md", "art", shouldEmbedArt);
+
+    removeAssetPath("assets/exclude");
+
+    if (shouldEmbedDefault)
+    {
+      info('Done embedding assets.');
+    }
+    else
+    {
+      info('Done including assets.');
+    }
+  }
+
+  function clearAssets():Void
+  {
+    if (!isBuild()) return;
+
+    var exportPath:Null<String> = app.path ?? "";
+    var platform:String = !isMac() ? Std.string(this.target) : 'macos';
+    var basePath:String = Path.join([exportPath, platform, "bin"]);
+    var assetsPath:String = "";
+
+    switch (platformType)
+    {
+      case PlatformType.DESKTOP:
+        if (isMac())
+        {
+          assetsPath = Path.join([
+            basePath,
+            '${this.app.file}.app',
+            "Contents",
+            "Resources",
+            "assets"
+          ]);
+        }
+        else
+        {
+          assetsPath = Path.join([basePath, "assets"]);
+        }
+      case PlatformType.MOBILE:
+        if (isAndroid() && !isBundle())
+        {
+          assetsPath = Path.join([
+            basePath,
+            "app",
+            "src",
+            "main",
+            "assets",
+            "assets"
+          ]);
+        }
+        else if (isIOS())
+        {
+          assetsPath = Path.join([
+            exportPath,
+            platform,
+            '${this.app.file}',
+            "assets",
+            "assets"
+          ]);
+        }
+        else
+        {
+          return;
+        }
+      default:
+        return;
+    }
+
+    if (sys.FileSystem.exists(assetsPath))
+    {
+      info('Deleting assets folder from export folder ($assetsPath)');
+      deleteDirectoryRecursive(assetsPath);
+    }
+    else
+    {
+      info('Assets folder does not exist ($assetsPath)');
+    }
+  }
+
+  function deleteDirectoryRecursive(path:String):Void
+  {
+    if (!sys.FileSystem.exists(path)) return;
+
+    for (file in sys.FileSystem.readDirectory(path))
+    {
+      var fullPath:String = Path.join([path, file]);
+      if (sys.FileSystem.isDirectory(fullPath))
+      {
+        deleteDirectoryRecursive(fullPath);
+      }
+      else
+      {
+        sys.FileSystem.deleteFile(fullPath);
+      }
+    }
+
+    sys.FileSystem.deleteDirectory(path);
+  }
+
+    function configureBuildInfo():Void
+  {
+    info('Embedding build info...');
+
+    var buildInfo = {
+      commit: getGitShortHash(),
+      branch: getGitBranch(),
+      buildType: isDebug() ? 'debug' : 'release',
+      platform: targetPlatformName(),
+      builtAt: Date.now().toString()
+    };
+
+    var outputDir:String = 'assets/preload/data';
+    var outputPath:String = '$outputDir/build-info.json';
+
+    try
+    {
+      if (!sys.FileSystem.exists(outputDir)) sys.FileSystem.createDirectory(outputDir);
+      sys.io.File.saveContent(outputPath, haxe.Json.stringify(buildInfo, null, '  '));
+      info('  Build info written to $outputPath (commit ${buildInfo.commit}, ${buildInfo.buildType}, ${buildInfo.platform})');
+    }
+    catch (e:Dynamic)
+    {
+      info('  ! Failed to write build info: $e');
+    }
+  }
+
+  function getGitShortHash():String
+  {
+    try
+    {
+      var process = new sys.io.Process('git', ['rev-parse', '--short', 'HEAD']);
+      var output:String = StringTools.trim(process.stdout.readLine());
+      process.close();
+      return output == '' ? 'unknown' : output;
+    }
+    catch (e:Dynamic)
+    {
+      return 'unknown';
+    }
+  }
+
+  function targetPlatformName():String
+  {
+    if (isAndroid()) return 'android';
+    if (isIOS()) return 'ios';
+    if (isWeb()) return 'web';
+    if (isMobile()) return 'mobile';
+    if (isLinux()) return 'linux';
+    return 'desktop';
+  }
+
+  function configureIcons()
+  {
+    info('Configuring application icons...');
+
+    if (isAndroid())
+    {
+     addIcon("art/icons/iconMoonOG.png");
+    }
+    else if (isIOS())
+    {
+      addIcon("art/icons/bf-iOS-Default-20x20@2x.png", 40);
+      addIcon("art/icons/bf-iOS-Default-20x20@3x.png", 60);
+      addIcon("art/icons/bf-iOS-Default-29x29.png", 29);
+      addIcon("art/icons/bf-iOS-Default-29x29@2x.png", 58);
+      addIcon("art/icons/bf-iOS-Default-29x29@3x.png", 87);
+      addIcon("art/icons/bf-iOS-Default-40x40@2x.png", 80);
+      addIcon("art/icons/bf-iOS-Default-60x60@2x.png", 120);
+      addIcon("art/icons/bf-iOS-Default-60x60@3x.png", 180);
+      addIcon("art/icons/bf-iOS-Default-1024x1024.png", 1024);
+      addIcon("art/icons/bf-iOS-Default-1024x1024.png");
+    }
+    else
+    {
+      addIcon("art/icons/iconMoonx16.png", 16);
+      addIcon("art/icons/iconMoonx32.png", 32);
+      addIcon("art/icons/iconMoonx64.png", 64);
+      addIcon("art/icons/iconMoonOG.png");
+    }
+
+    info('Done configuring icons.');
+  }
+
+  function configureASTCTextures()
+  {
+    if (!(isDisplay() && isCleanCommand()) && FEATURE_COMPRESSED_TEXTURES.isEnabled(this))
+    {
+      readASTCExclusion();
+      runASTCCompressor();
+    }
+  }
+
+  function configureAdMobKeys()
+  {
+    if (envConfig == null) return;
+
+    if (FEATURE_MOBILE_ADVERTISEMENTS.isEnabled(this))
+    {
+      var appId:Null<String> = Std.string(envConfig.get('ADMOB_APP_ID'));
+
+      if (appId != null && appId != "null")
+      {
+        setenv("ADMOB_APPID", appId);
+      }
+      else
+      {
+        error("ADMOB_APP_ID is not defined in the environment. Populate the .env file in your project root or build with -DNO_FEATURE_MOBILE_ADVERTISEMENTS");
+      }
+    }
+  }
+
+  public function isWeb():Bool
+  {
+    return this.platformType == PlatformType.WEB;
+  }
+
+  public function isMobile():Bool
+  {
+    return this.platformType == PlatformType.MOBILE;
+  }
+
+  public function isDesktop():Bool
+  {
+    return this.platformType == PlatformType.DESKTOP;
+  }
+
+  public function isConsole():Bool
+  {
+    return this.platformType == PlatformType.CONSOLE;
+  }
+
+  public function is32Bit():Bool
+  {
+    return this.architectures.contains(Architecture.X86);
+  }
+
+  public function is64Bit():Bool
+  {
+    return this.architectures.contains(Architecture.X64);
+  }
+
+  public function isWindowsHost():Bool
+  {
+    return System.hostPlatform == WINDOWS;
+  }
+
+  public function isMacHost():Bool
+  {
+    return System.hostPlatform == MAC;
+  }
+
+  public function isLinuxHost():Bool
+  {
+    return System.hostPlatform == LINUX;
+  }
+
+  public function isWindows():Bool
+  {
+    return this.target == Platform.WINDOWS;
+  }
+
+  public function isMac():Bool
+  {
+    return this.target == Platform.MAC;
+  }
+
+  public function isLinux():Bool
+  {
+    return this.target == Platform.LINUX;
+  }
+
+  public function isAndroid():Bool
+  {
+    return this.target == Platform.ANDROID;
+  }
+
+  public function isIOS():Bool
+  {
+    return this.target == Platform.IOS;
+  }
+
+  public function isIOSSimulator():Bool
+  {
+    return this.target == Platform.IOS && this.targetFlags.exists("simulator");
+  }
+
+  public function isCPP():Bool
+  {
+    return this.defines.exists("cpp");
+  }
+
+  public function isDisplay():Bool
+  {
+    return this.command == "display";
+  }
+
+  public function isCleanCommand():Bool
+  {
+    return this.command == "clean";
+  }
+
+  public function isCleanFlag():Bool
+  {
+    return this.targetFlags.exists("clean");
+  }
+
+  public function isRun():Bool
+  {
+    return this.command == "run";
+  }
+
+  public function isInstall():Bool
+  {
+    return this.command == "install";
+  }
+
+  public function isUninstall():Bool
+  {
+    return this.command == "uninstall";
+  }
+
+  public function isBuild():Bool
+  {
+    return this.command == "test" || this.command == "build";
+  }
+
+  public function isDebug():Bool
+  {
+    return this.debug;
+  }
+
+  public function isRelease():Bool
+  {
+    return !isDebug();
+  }
+
+  public function isBundle():Bool
+  {
+    return this.targetFlags.exists("bundle") && isAndroid();
+  }
+
+  public function getHaxedef(name:String):Null<Dynamic>
+  {
+    return this.haxedefs.get(name);
+  }
+
+  public function setHaxedef(name:String, ?value:String):Void
+  {
+    if (value == null) value = "";
+    this.haxedefs.set(name, value);
+  }
+
+  public function unsetHaxedef(name:String):Void
+  {
+    this.haxedefs.remove(name);
+  }
+
+  public function getDefine(name:String):Null<Dynamic>
+  {
+    return this.defines.get(name);
+  }
+
+  public function hasDefine(name:String):Bool
+  {
+    return this.defines.exists(name);
+  }
+
+  public function addHaxelib(name:String, version:String = ""):Void
+  {
+    this.haxelibs.push(new Haxelib(name, version));
+  }
+
+  public function addHaxeFlag(value:String):Void
+  {
+    this.haxeflags.push(value);
+  }
+
+  public function addHaxeMacro(value:String):Void
+  {
+    addHaxeFlag('--macro ${value}');
+  }
+
+  public function addIcon(icon:String, ?size:Int):Void
+  {
+    this.icons.push(new Icon(icon, size));
+  }
+
+  public function addAsset(path:String, ?rename:String, ?library:String, embed:Bool = false, ?padName:String):Void
+  {
+    if (Path.extension(path) == 'png' && FEATURE_COMPRESSED_TEXTURES.isEnabled(this))
+    {
+      final astcPath:String = "astc-textures/" + path.substr(0, path.length - 3) + "astc";
+      if (!isASTCExcluded(path) && FileSystem.exists(astcPath))
+      {
+        path = astcPath;
+        if (rename != null) rename = rename.substr(0, rename.length - 3) + "astc";
+      }
+    }
+
+    var asset = new Asset(path, rename, null, embed, true);
+    @:nullSafety(Off)
+    {
+      asset.library = library ?? "default";
+    }
+
+    if (padName != null && isBundle())
+    {
+      asset.deliveryPackName = padName;
+    }
+
+    this.assets.push(asset);
+  }
+
+  public function removeAsset(path:String, ?library:String):Void
+  {
+    for (asset in this.assets)
+    {
+      if (asset.sourcePath == path)
+      {
+        if (library != null && asset.library != library) continue;
+        this.assets.remove(asset);
+        break;
+      }
+    }
+  }
+
+  public function addAssetPath(path:String,
+    ?rename:String,
+    library:String,
+    ?include:Array<String>,
+    ?exclude:Array<String>,
+    embed:Bool = false,
+    ?padName:String):Void
+  {
+    if (path == "") return;
+
+    if (include == null) include = [];
+    if (exclude == null) exclude = [];
+
+    var targetPath = rename ?? path;
+    if (targetPath != "") targetPath += "/";
+
+    if (!sys.FileSystem.exists(path))
+    {
+      error('Could not find asset path "${path}".');
+    }
+    else if (!sys.FileSystem.isDirectory(path))
+    {
+      error('Could not parse asset path "${path}", expected a directory.');
+    }
+
+    for (file in sys.FileSystem.readDirectory(path))
+    {
+      if (sys.FileSystem.isDirectory('${path}/${file}'))
+      {
+        if (this.filter(file, ["*"], exclude))
+        {
+          addAssetPath('${path}/${file}', '${targetPath}${file}', library, include, exclude, embed, padName);
+        }
+      }
+      else
+      {
+        if (this.filter(file, include, exclude))
+        {
+          addAsset('${path}/${file}', '${targetPath}${file}', library, embed, padName);
+        }
+      }
+    }
+  }
+
+  public function removeAssetPath(path:String, ?library:String):Void
+  {
+    if (path == "") return;
+
+    if (!sys.FileSystem.exists(path))
+    {
+      error('Could not find asset path "${path}".');
+    }
+    else if (!sys.FileSystem.isDirectory(path))
+    {
+      error('Could not parse asset path "${path}", expected a directory.');
+    }
+
+    for (exclude in EXCLUDE_ASSETS)
+    {
+      if (path.contains(exclude.replace('*', ''))) return;
+    }
+
+    for (file in sys.FileSystem.readDirectory(path))
+    {
+      if (sys.FileSystem.isDirectory('${path}/${file}'))
+      {
+        removeAssetPath('${path}/${file}', library);
+      }
+      else
+      {
+        removeAsset('${path}/${file}', library);
+      }
+    }
+  }
+
+  public function addAssetLibrary(name:String, embed:Bool = false, preload:Bool = false):Void
+  {
+    var sourcePath = '';
+    this.libraries.push(new Library(sourcePath, name, null, embed, preload, false, ""));
+  }
+
+  public function buildCLICommand(cmd:String):CLICommand
+  {
+    return CommandHelper.fromSingleString(cmd);
+  }
+
+  public function buildHaxeCLICommand(path:String):CLICommand
+  {
+    return CommandHelper.interpretHaxe(path);
+  }
+
+  public function getGitCommit():String
+  {
+    var process = new sys.io.Process('git', ['rev-parse', 'HEAD']);
+    if (process.exitCode() != 0)
+    {
+      var message = process.stderr.readAll().toString();
+      error('Could not determine current git commit; is this a proper Git repository?');
+    }
+
+    var commitHash:String = process.stdout.readLine();
+    var commitHashSplice:String = commitHash.substr(0, 7);
+
+    process.close();
+
+    return commitHashSplice;
+  }
+
+  @SuppressWarnings('checkstyle:Dynamic')
+  function checkLibraries():Void
+  {
+    var differentLibraries:Map<String, Array<String>> = new Map<String, Array<String>>();
+    var hmmData:Dynamic = haxe.Json.parse(sys.io.File.getContent(#if ios '../../../../../' + #end 'hmm.json'));
+    var dependencies:Array<Dynamic> = cast hmmData.dependencies;
+
+    for (library in dependencies)
+    {
+      var libraryName:String = cast(library.name, String).replace(".", ",");
+      var libraryDev:String = readLibraryDev(libraryName);
+      var libraryCurrentVersion:String = readLibraryCurrentVersion(libraryName);
+      var libraryCurrentCommitHash:String = readLibraryGitCommitHash(libraryName);
+
+      if (libraryDev != "" && !isLibraryLocalGitDev(libraryName))
+      {
+        switch (library.type)
+        {
+          case 'haxelib':
+            differentLibraries.set(libraryName, [libraryDev, libraryCurrentCommitHash, library.version, 'haxelib']);
+          case 'git':
+            if (libraryCurrentCommitHash != library.ref)
+            {
+              differentLibraries.set(libraryName, [libraryDev, libraryCurrentCommitHash, library.ref, 'git']);
+            }
+        }
+      }
+      else
+      {
+        switch (library.type)
+        {
+          case 'haxelib':
+            if (library.version != libraryCurrentVersion)
+            {
+              differentLibraries.set(libraryName, ['', libraryCurrentVersion, library.version, 'haxelib']);
+            }
+          case 'git':
+            if (libraryCurrentCommitHash != library.ref)
+            {
+              differentLibraries.set(libraryName, ['', libraryCurrentCommitHash, library.ref, 'git']);
+            }
+        }
+      }
+    }
+
+    if (Lambda.count(differentLibraries) > 0)
+    {
+      warn("Some libraries differ from the versions defined in hmm.json.".bold().yellow());
+      warn("To ensure consistency, it's recommended to stop the build and run `hmm reinstall [library]`.".bold().yellow());
+      warn("If you're intentionally using development builds or newer versions, you can ignore this warning.".bold().yellow());
+
+      Sys.println('');
+
+      for (libraryName in differentLibraries.keys())
+      {
+        var infos:Null<Array<String>> = differentLibraries.get(libraryName);
+        if (infos == null) continue;
+
+        var devPath:String = infos[0];
+        var currentVersion:String = infos[1];
+        var expectedVersion:String = infos[2];
+        var libType:String = infos[3];
+
+        if (haxe.io.Path.isAbsolute(devPath))
+        {
+          Sys.println("- " + libraryName.replace(",", ".") + " (Development Build)".bright_cyan());
+          Sys.println(("   Path:     " + haxe.io.Path.removeTrailingSlashes(devPath)).bright_blue());
+        }
+        else
+        {
+          Sys.println("- " + libraryName.replace(",", "."));
+        }
+
+        Sys.println(("   Current:  " + currentVersion).red());
+        Sys.println(("   Expected: " + expectedVersion).green());
+      }
+
+      Sys.println('');
+    }
+  }
+
+  static function readLibraryCurrentVersion(libraryName:String):String
+  {
+    var path = getLibraryCurrentFile(libraryName);
+    if (sys.FileSystem.exists(path)) return sys.io.File.getContent(path).trim();
+    return '';
+  }
+
+  static function readLibraryDev(libraryName:String):String
+  {
+    var path = getLibraryDevFile(libraryName);
+    if (sys.FileSystem.exists(path)) return sys.io.File.getContent(path).trim();
+    return '';
+  }
+
+  static function readLibraryGitCommitHash(libraryName:String):String
+  {
+    var commit:String = '';
+
+    var gitProccess = new sys.io.Process("git", [
+      "-C",
+      getLibraryGitPath(libraryName),
+      "rev-parse",
+      "HEAD"
+    ]);
+    gitProccess.exitCode(true);
+    commit = gitProccess.stdout.readAll().toString().trim();
+
+    if (commit.length <= 0)
+    {
+      gitProccess = new sys.io.Process("git", ["-C", readLibraryDev(libraryName), "rev-parse", "HEAD"]);
+      gitProccess.exitCode(true);
+      commit = gitProccess.stdout.readAll().toString().trim();
+    }
+
+    return commit;
+  }
+
+  static function getLibraryCurrentFile(libraryName:String):String
+  {
+    return haxe.io.Path.join([
+      haxe.io.Path.addTrailingSlash(Sys.getCwd()),
+      '.haxelib',
+      libraryName,
+      '.current'
+    ]);
+  }
+
+  static function getLibraryDevFile(libraryName:String):String
+  {
+    return haxe.io.Path.join([
+      haxe.io.Path.addTrailingSlash(Sys.getCwd()),
+      '.haxelib',
+      libraryName,
+      '.dev'
+    ]);
+  }
+
+  static function getLibraryGitPath(libraryName:String):String
+  {
+    return haxe.io.Path.join([
+      haxe.io.Path.addTrailingSlash(Sys.getCwd()),
+      '.haxelib',
+      libraryName,
+      'git'
+    ]);
+  }
+
+  static function isLibraryLocalGitDev(libraryName:String):Bool
+  {
+    final gitPath:String = getLibraryGitPath(libraryName);
+    final devFile:String = getLibraryDevFile(libraryName);
+
+    if (FileSystem.exists(gitPath) && FileSystem.exists(devFile))
+    {
+      return Path.normalize(readLibraryDev(libraryName)).startsWith(gitPath);
+    }
+
+    return false;
+  }
+
+  static function getLibraryPath(libraryName:String):String
+  {
+    var process = new sys.io.Process('haxelib', ['libpath', libraryName]);
+    @:privateAccess
+    return process.stdout.readLine();
+  }
+
+  public function getGitBranch():String
+  {
+    var branchProcess = new sys.io.Process('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
+
+    if (branchProcess.exitCode() != 0)
+    {
+      var message = branchProcess.stderr.readAll().toString();
+      error('Could not determine current git branch; is this a proper Git repository?');
+    }
+
+    var branchName:String = branchProcess.stdout.readLine();
+    branchProcess.close();
+
+    return branchName;
+  }
+
+  public function getGitModified():Bool
+  {
+    var branchProcess = new sys.io.Process('git', ['diff', '--quiet']);
+    return branchProcess.exitCode(true) == 1;
+  }
+
+  public function buildHxCppTools():Void
+  {
+    var path:String = getLibraryPath("hxcpp");
+    var dotNPath:String = haxe.io.Path.join([path, 'hxcpp.n']);
+    var toolsPath:String = haxe.io.Path.join([path, 'tools/hxcpp']);
+
+    if (path.toLowerCase().startsWith("error") || !sys.FileSystem.exists(path)) error('HXCPP could not be found while on C++ target.');
+
+    if (sys.FileSystem.exists(dotNPath))
+    {
+      return;
+    }
+
+    info('Compiling the HXCPP Build Tool...');
+
+    var oldDir:String = Sys.getCwd();
+    info(toolsPath);
+    Sys.setCwd(toolsPath);
+
+    var compileProcess = new sys.io.Process('haxe', ['compile.hxml']);
+
+    if (compileProcess.exitCode() != 0)
+    {
+      info('Could not compile the Build Tool. Is HXCPP installed correctly? Continuing...');
+    }
+    else
+    {
+      info('Compiled the HXCPP Build Tool successfully!');
+    }
+
+    compileProcess.close();
+    Sys.setCwd(oldDir);
+  }
+
+  public function error(message:String):Void
+  {
+    Sys.stderr().write(Bytes.ofString(' ERROR '.bold().bg_red() + " " + message));
+    Sys.exit(1);
+  }
+
+  public function info(message:String):Void
+  {
+    if (!(isDisplay() || isCleanCommand() || isRun() || isInstall() || isUninstall()))
+    {
+      Sys.println(' INFO '.bold().bg_blue() + " " + message);
+    }
+  }
+
+  public function warn(message:String):Void
+  {
+    if (!(isDisplay() || isCleanCommand() || isRun() || isInstall() || isUninstall()))
+    {
+      Sys.println(' WARNING '.bold().bg_yellow() + " " + message);
+    }
+  }
+
+  public function readEnvironmentFile(file:String):Null<Map<String, Dynamic>>
+  {
+    if (!FileSystem.exists(file))
+    {
+      warn('Environment file does not exist: ${file}');
+      return null;
+    }
+
+    var envFile = File.getContent(file);
+
+    if (envFile == null)
+    {
+      warn('Failed to parse environment file: ${file}');
+      return null;
+    }
+
+    var env = new Map<String, Dynamic>();
+
+    for (line in envFile.split('\n'))
+    {
+      line = line.trim();
+
+      if (line.length <= 0 || line.startsWith('#') || shouldExcludeEnvKey(line))
+      {
+        continue;
+      }
+
+      final index:Int = line.indexOf('=');
+
+      if (index == -1)
+      {
+        continue;
+      }
+
+      final value:String = line.substr(index + 1);
+
+      if (value.length == 0)
+      {
+        continue;
+      }
+
+      env.set(stripEnvTargetPrefix(line.substr(0, index)), value);
+    }
+
+    return env;
+  }
+
+  public function shouldExcludeEnvKey(key:String):Bool
+  {
+    final android:Bool = key.startsWith('ANDROID_');
+    final ios:Bool = key.startsWith('IOS_');
+    final mobile:Bool = key.startsWith('MOBILE_') || ios || android;
+    final web:Bool = key.startsWith('WEB_');
+    final desktop:Bool = key.startsWith('DESKTOP_');
+    final native:Bool = key.startsWith('NATIVE_');
+
+    if (isWeb() && (mobile || desktop || native)) return true;
+    if (isDesktop() && (mobile || web)) return true;
+    if (isAndroid() && (ios || web || desktop)) return true;
+    if (isIOS() && (android || web || desktop)) return true;
+
+    return false;
+  }
+
+  public function stripEnvTargetPrefix(key:String):String
+  {
+    final index:Int = key.indexOf('_');
+
+    if (index == -1)
+    {
+      return key;
+    }
+
+    final prefix:String = key.substr(0, index);
+    final rest:String = key.substr(index + 1);
+
+    if (isAndroid() && (prefix == 'ANDROID' || prefix == 'MOBILE' || prefix == 'NATIVE'))
+    {
+      return rest;
+    }
+    else if (isIOS() && (prefix == 'IOS' || prefix == 'MOBILE' || prefix == 'NATIVE'))
+    {
+      return rest;
+    }
+    else if (isWeb() && prefix == 'WEB')
+    {
+      return rest;
+    }
+    else if (isDesktop() && (prefix == 'DESKTOP' || prefix == 'NATIVE'))
+    {
+      return rest;
+    }
+
+    return key;
+  }
+
+  public function readASTCExclusion():Void
+  {
+    @:nullSafety(Off)
+    astcExcludes = haxe.Json.parse(File.getContent('./astc-compression-data.json')).excludes;
+
+    for (i in 0...astcExcludes.length) astcExcludes[i] = astcExcludes[i].trim();
+  }
+
+  public function isASTCExcluded(file:String):Bool
+  {
+    for (exclusion in astcExcludes)
+    {
+      if (exclusion.endsWith("/"))
+      {
+        var normalizedFilePath = Path.normalize(file);
+        var normalizedExclusion = Path.normalize(exclusion);
+
+        if (normalizedFilePath.startsWith(normalizedExclusion)) return true;
+      }
+      else if (exclusion.endsWith("/*"))
+      {
+        var normalizedExclusion = Path.normalize(exclusion.substr(0, exclusion.length - 2));
+        var fileDirectory = Path.directory(Path.normalize(file));
+
+        if (fileDirectory == normalizedExclusion) return true;
+      }
+      else
+      {
+        if (file == exclusion) return true;
+      }
+    }
+
+    return false;
+  }
+
+  public function runASTCCompressor():Void
+  {
+    info('Compressing ASTC textures...');
+
+    var args:Array<String> = ['run', 'astc-compressor', 'compress-from-json'];
+    args = args.concat(['-json', './astc-compression-data.json']);
+
+    if (isCleanFlag())
+    {
+      args = args.concat(['-clean']);
+    }
+
+    Sys.command('haxelib', args);
+
+    info('Done compressing ASTC textures.');
+  }
+}
+
+abstract FeatureFlag(String) from String to String
+{
+  public static final INVERSE_PREFIX:String = "NO_";
+
+  public function new(input:String)
+  {
+    this = input;
+  }
+
+  @:from
+  public static function fromString(input:String):FeatureFlag
+  {
+    return new FeatureFlag(input);
+  }
+
+  public function apply(project:Project, enableByDefault:Bool = false):Void
+  {
+    if (isEnabled(project))
+    {
+      getInverse().disable(project, false);
+    }
+    else if (getInverse().isEnabled(project))
+    {
+      disable(project, false);
+    }
+    else
+    {
+      if (enableByDefault)
+      {
+        enable(project, true);
+      }
+      else
+      {
+        disable(project, true);
+      }
+    }
+  }
+
+  public function enable(project:Project, andInverse:Bool = true)
+  {
+    project.setHaxedef(this, "");
+    if (andInverse)
+    {
+      getInverse().disable(project, false);
+    }
+  }
+
+  public function disable(project:Project, andInverse:Bool = true)
+  {
+    project.unsetHaxedef(this);
+    if (andInverse)
+    {
+      getInverse().enable(project, false);
+    }
+  }
+
+  public function isEnabled(project:Project):Bool
+  {
+    return project.haxedefs.exists(this) || project.defines.exists(this);
+  }
+
+  public function isDisabled(project:Project):Bool
+  {
+    return getInverse().isEnabled(project);
+  }
+
+  public function getInverse():FeatureFlag
+  {
+    if (this.startsWith(INVERSE_PREFIX))
+    {
+      return this.substring(INVERSE_PREFIX.length);
+    }
+    return INVERSE_PREFIX + this;
+  }
+}
