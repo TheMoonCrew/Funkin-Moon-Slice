@@ -977,6 +977,11 @@ class Project extends HXProject
       addHaxelib('extension-androidtools');
     }
 
+    if (isMobile())
+    {
+      addHaxelib('extension-mobiletools');
+    }
+
     if (isLinux())
     {
       addHaxelib('hxgamemode');

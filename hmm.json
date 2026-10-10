@@ -37,6 +37,13 @@
       "version": "2.2.2"
     },
     {
+      "name": "extension-mobiletools",
+      "type": "git",
+      "dir": null,
+      "ref": "main",
+      "url": "https://github.com/TheMoonCrew/extension-mobiletools"
+    },
+    {
       "name": "foxlite",
       "type": "haxelib",
       "version": "0.1.1"
